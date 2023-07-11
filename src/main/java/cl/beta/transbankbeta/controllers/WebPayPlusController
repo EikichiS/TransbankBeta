@@ -1,0 +1,94 @@
+package cl.beta.transbankbeta.controller;
+
+import cl.transbank.common.IntegrationApiKeys;
+import cl.transbank.common.IntegrationCommerceCodes;
+import cl.transbank.common.IntegrationType;
+import cl.transbank.webpay.common.WebpayOptions;
+import cl.transbank.webpay.exception.TransactionCommitException;
+import cl.transbank.webpay.exception.TransactionCreateException;
+import cl.transbank.webpay.exception.TransactionRefundException;
+import cl.transbank.webpay.exception.TransactionStatusException;
+import cl.transbank.webpay.webpayplus.WebpayPlus;
+import cl.transbank.webpay.webpayplus.responses.WebpayPlusTransactionCommitResponse;
+import cl.transbank.webpay.webpayplus.responses.WebpayPlusTransactionCreateResponse;
+import cl.transbank.webpay.webpayplus.responses.WebpayPlusTransactionRefundResponse;
+import cl.transbank.webpay.webpayplus.responses.WebpayPlusTransactionStatusResponse;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import java.io.IOException;
+
+@RestController
+@RequestMapping("/webpay")
+public class WebPayPlusController {
+
+    private WebpayPlus.Transaction tx;
+
+    public WebPayPlusController(){
+        tx = new WebpayPlus.Transaction(new WebpayOptions(IntegrationCommerceCodes.WEBPAY_PLUS, IntegrationApiKeys.WEBPAY, IntegrationType.TEST));
+    }
+
+
+
+    @PostMapping("/crearTransaccion")
+    public ResponseEntity<WebpayPlusTransactionCreateResponse> crearTransaccion(){
+        String buyOrder = "buyOrder_" + 12345678;
+        String sessionId = "sessionId_" + 1234557545;
+        double amount = 1000;
+        String returnUrl = "http://127.0.0.1:5173/commit/";
+        WebpayPlusTransactionCreateResponse response;
+        try {
+            response = tx.create(buyOrder, sessionId, amount, returnUrl);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (TransactionCreateException e) {
+            throw new RuntimeException(e);
+        }
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("/commit")
+    public ResponseEntity<WebpayPlusTransactionCommitResponse> commit(@RequestParam("token_ws") String tokenWs){
+
+        WebpayPlusTransactionCommitResponse response;
+        try {
+            response = tx.commit(tokenWs);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (TransactionCommitException e) {
+            throw new RuntimeException(e);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+
+    @PostMapping("/status")
+    public ResponseEntity<WebpayPlusTransactionStatusResponse> status(@RequestParam("token_ws") String token) {
+
+        WebpayPlusTransactionStatusResponse response;
+        try {
+            response = tx.status(token);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (TransactionStatusException e) {
+            throw new RuntimeException(e);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refund")
+    public ResponseEntity<WebpayPlusTransactionRefundResponse> refund(@RequestParam("token_ws") String tokenWs,
+                                                                      @RequestParam("amount") double amount){
+        WebpayPlusTransactionRefundResponse response;
+        try {
+            response = tx.refund(tokenWs, amount);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (TransactionRefundException e) {
+            throw new RuntimeException(e);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+}
